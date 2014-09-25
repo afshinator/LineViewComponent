@@ -1,0 +1,50 @@
+* {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+div {
+  border: 1px solid black;
+}
+
+.lineviewer {
+  position: absolute;
+  top: 5%;
+  left: 5%;
+  height: 90%;
+  width: 90%;
+  border: 1px solid black;
+}
+
+.lineviewer-content {
+  position: absolute;
+  left: 0;
+  up: 0;
+  right: 20px;
+  height: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  font-family: 'courier new';
+  font-size: 11pt;
+}
+
+.lineviewer-nav {
+  position: absolute;
+  up: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+}
+
+.lineviewer-up {
+  position: absolute;
+  up: 0;
+  width: 100%;
+}
+
+.lineviewer-down {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
