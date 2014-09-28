@@ -35,16 +35,25 @@ div {
   right: 0;
   width: 20px;
   height: 100%;
+  
+  -webkit-touch-callout: none;
+-webkit-user-select: none;
+-khtml-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
 }
 
 .lineviewer-up {
   position: absolute;
   up: 0;
   width: 100%;
+  cursor: pointer;
 }
 
 .lineviewer-down {
   position: absolute;
   bottom: 0;
   width: 100%;
+  cursor: pointer;
 }

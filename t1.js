@@ -1,202 +1,136 @@
 $(function() {
 
-	/* "THE MODEL, captures the behavior of the application in terms of its problem domain, 
-		independent of the user interface. The model directly manages the data, logic and 
-		rules of the application."
-	*/
-	var model = function() {
-		var originalTxt,
-			lines = [];
-
-		var init = function() {
-
-		};
-
-		var parseAndStoreText = function( txt ) {
-			originalTxt = txt;
-			lines = originalTxt.split('\n');
-		};
-
-		return {
-			init : init,
-			parseAndStoreText : parseAndStoreText
-		};
-
-	}();
-
-
-
-/* "A view can be any output representation of information, such as a chart or a diagram; 
-	multiple views of the same information are possible. "
-
-	This view changes based on the height of the browser, so it will encapsulate logic to 
-	deal with that.
-*/
 	var view = function() {
-		var $content,
-			height,
-			linesToShow,
-			topLineNumber,
-			bottomLineNumber;
+		var
+			$content = $('.lineviewer-content'),
+			$up = $('.lineviewer-up'),		
+			$down = $('.lineviewer-down');
 
-		var init = function() {
-			$content = $('.lineviewer-content');
+		var
+			init = function() {},
 
-    		handleBrowserResize(); // Get height of browser & lines to show
-		};
+			clear = function() { $content.empty(); },
+			getText = function() { return $content.text(); },
+			getFontSize = function() { return $content.css('font-size'); },
+			height = function() { return $content.height(); },
 
-		var handleBrowserResize = function() {
-			height = $content.height();
-			linesToShow = Math.floor( height / parseInt( $content.css('font-size') ) );
-			console.log( linesToShow );		
-		};
+			captureBrowserResize = function( callback ) { $(window).on( 'resize', callback ); },
 
-		var extractText = function() {
-			var txt = $content.text();			// get contents
-			$content.text('');					// empty out the content area
-			return txt;
-		};
+			captureScroll = function ( upOrDown, callback ) {
+				// http://stackoverflow.com/questions/4080497/how-can-i-listen-for-a-click-and-hold-in-jquery
+				var timeoutId = 0,
+					$el = ( upOrDown === 'up' ) ? $up : $down;
+
+				$el.mousedown(function() {
+				    callback();
+				});
+			},
+
+			render = function( lines, top, linesToShow ) {
+				var html = '', i;
+				console.log('top: '+ top + '   lineToShow :' + linesToShow );
+				for ( i = 0; i < linesToShow; i++ ) {
+					html += '<span class="line">' + ( i + top ) + ': ' + lines[ top + i ] + '<br></span>';
+				}
+				clear();
+				$content.append( html );
+			};
 
 		return {
 			init : init,
-			extractText : extractText,
-			browserResizeEvent : handleBrowserResize
+			clear : clear,									// empty the div
+			getText : getText,								// return all the text in the div
+			getFontSize : getFontSize,						// return font-size
+			viewableContentHeight : height,					// return height of the div
+			captureBrowserResize : captureBrowserResize,	// pass in function to execute on browser resize
+			captureScroll : captureScroll,					// 1st param: 'up' or 'down', 2nd: function to execute on scroll
+			render : render									// update the DOM;
 		};
-
+		
 	}();
 
 
+	var model = function() {
+		var
+			originalTxt,
+			lines = [],
+			linesToShow,
+			top;
 
-	/* "the controller, accepts input and converts it to commands for the model or view."
+		var
+			init = function( txt ) {
+				top = 0;
+				originalTxt = txt;
+				lines = originalTxt.split('\n');
+				computeLinesToShow();
+			},
 
-	*/
-	var controller = function() {
-		var $up = $('.lineviewer-up'),		// Even though these are UI elements, they provide input into system, 
-			$down = $('.lineviewer-down');	// so they are owned by the controller.
+			computeLinesToShow = function ( ) {
+				// This is an approximation of how many lines will need to get shown
+				// TODO: The smaller the height of the browser, the closer this approximation is.
+				linesToShow = Math.floor( view.viewableContentHeight() / parseInt( view.getFontSize() ) );
+				view.render( lines, top, linesToShow );		// tell view to show appropriate # of lines
+			},
 
-		var init = function() {
-			model.init();
-			view.init();
+			handleScrollUp = function() {
+				if ( top > 0 ) {
+					top--;
+					view.render( lines, top, linesToShow );
+				}
+			}
 
-    		// Set it up so that everytime the browser is resized, we recalculate 
-    		// the number of lines to show in the content div.  
-			$(window).on( 'resize', function() {
-				view.browserResizeEvent();
-			});
 
-			model.parseAndStoreText( view.extractText() );
-		};
+			handleScrollDown = function() {
+				if ( top + linesToShow < lines.length ) {
+					top++;
+					view.render( lines, top, linesToShow );
+				}
+			}
+			;
 
 		return {
-			init : init
-
+			init : init,
+			computeLinesToShow : computeLinesToShow,
+			handleScrollUp : handleScrollUp,
+			handleScrollDown : handleScrollDown
 		};
+		
 	}();
 
 
-	controller.init();
+	var controller = function() {
+		var 
+			// Returns a function that ignores all further invocations until wait amount
+			// of time has passed, at which time it will invoke the function once.
+			// Used to limit how many times a callback function is called for gui events.
+			debounce = function(func, wait) {
+				var timeout;
+				return function() {
+					var context = this, args = arguments;
+					var later = function() {
+						timeout = null;
+						func.apply(context, args);
+					};
+					clearTimeout(timeout);
+					timeout = setTimeout(later, wait);
+				};
+				return func;
+			},
 
+			init = function() {
+				view.init();
+				model.init( view.getText() );			// get all the text in the content div, give it to the model
+				view.captureBrowserResize( debounce( model.computeLinesToShow, 300 ) );	// tell the view to trigger the model method on browser resize
+				view.captureScroll( 'up', model.handleScrollUp );
+				view.captureScroll( 'down', model.handleScrollDown );	
+			}();
 
+		return {
+			init : init,
+			debounce : debounce
+		}
+	}();	
 
-
-//     var view = function() {
-//     	var $content = $('.lineviewer-content'),
-//     		$up = $('.lineviewer-up'),
-//     		$down = $('.lineviewer-up'),
-//     		height,						// updated by resize event, in pixels, used to calculate lines to show
-//     		currentLinesPerScreen,		// the last rendered lines per div 
-//     		linesPerScreen,				// browser resize causes this to be updated
-//     		top,						// index into which line is showing at the top part of the div
-//     		bottom;
-
-
-//     	var 
-//     	init = function() {
-//     		var adjustNumberOfLinesToShow = function() {
-// 				height = $content.height();
-// 				linesPerScreen = Math.floor( height / parseInt( $content.css('font-size') ) );
-// 				console.log( linesPerScreen );
-//     		};
-
-//     		// Set it up so that everytime the browser is resized, we recalculate the number of 
-//     		// lines to show in the content div.  
-// 			$(window).on( 'resize', adjustNumberOfLinesToShow );
-
-// 			// Do it at least once at startup
-// 			adjustNumberOfLinesToShow();
-
-// 			currentLinesPerScreen = linesPerScreen;
-// 			top = 0;							// default to show line 0 at top			
-// 			bottom = top + currentLinesPerScreen;
-//     	},
-
-//     	extractTextToDisplay = function() {
-//     		return $content.text();
-//     	},
-
-//     	clearContentArea = function() {
-//     		$content.text('');
-//     	};
-
-
-//     	return {
-//     		init : init,
-//     		extractText : extractTextToDisplay,
-//     		clearContentArea : clearContentArea
-//     	};
-//     }();
-
-
-//     var model = function() {
-//     	var rawText = "",
-//     		lines = [];
-
-//     	var
-//     	init = function() {
-// 			rawText = "";
-// 			lines = [];
-//     	},
-
-//     	parseAndStoreText = function( txt, parseFn ) {
-//     		rawText = txt;
-//     		lines = parseFn( txt );
-//     	},
-
-//     	showTxt = function() {
-//     		console.log('--> ' + lines.length );
-//     		for ( var i = 0; i < lines.length; i++ ) {
-//     			console.log( i + ' : ' + lines[ i ] );
-//     		}
-//     	};
-
-//     	return {
-//     		init : init,
-//     		parseAndStoreText : parseAndStoreText
-//     	};
-
-//     }();
-
-//     var controller = function() {
-//     	var 
-//     	init = function() {
-//     		// Ask the view and model to do their initialization stuff
-//     		view.init();
-//     		model.init();
-
-//     		// Ask the view for the text from the html, give it to the model
-//     		model.parseAndStoreText( view.extractText(), function(s) { return s.split('\n'); } );
-
-//     		// Ask the view to clear out the content area
-//     		view.clearContentArea();
-//     	}();
-
-
-
-//     	return {
-//     		upPressed : upPressed,
-//     		downPressed : downPressed
-//     	};
-//     }();
 
 
 });
