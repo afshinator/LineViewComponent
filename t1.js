@@ -2,9 +2,9 @@ $(function() {
 
 	var view = function() {
 		var
-			$content = $('.lineviewer-content'),			// main content area
+			$content = $('.lineviewer-content'),		// main content area
 			$up = $('.lineviewer-up'),						// scroll up button
-			$down = $('.lineviewer-down');					// scroll down button
+			$down = $('.lineviewer-down');				// scroll down button
 
 		var
 			init = function() {},							// TODO:   not necessary now, but as more code is added...
@@ -38,14 +38,12 @@ $(function() {
 
 			captureMouseWheel = function( upOrDown, callback ) {
 				$(window).bind( 'mousewheel', function(e) {
-				    if( upOrDown === 'up' && e.originalEvent.wheelDelta > 0 ) {
-				    	console.log( upOrDown ); 
-				        callback();
-				    } 
-				    if ( upOrDown === 'down' && e.originalEvent.wheelDelta < 0) {
-				    	console.log( upOrDown ); 
-				    	callback();
-				    }
+					if( upOrDown === 'up' && e.originalEvent.wheelDelta > 0 ) {
+						callback();
+					} 
+					if ( upOrDown === 'down' && e.originalEvent.wheelDelta < 0) {
+						callback();
+					}
 				});
 			},
 
@@ -58,18 +56,19 @@ $(function() {
 				}
 				clear();
 				$content.append( html );
+// console.log( ' the check ' + ( $content.offsetHeight < $content.scrollHeight ) ) ;
 			};
 
 		return {
 			init : init,
-			clear : clear,									// Empty the main content area
-			getText : getText,								// Return all the text in the main content area
-			getFontSize : getFontSize,						// return font-size
+			clear : clear,											// Empty the main content area
+			getText : getText,									// Return all the text in the main content area
+			getFontSize : getFontSize,							// return font-size
 			viewableContentHeight : height,					// return height of the div
 			captureBrowserResize : captureBrowserResize,	// pass in function to execute on browser resize
 			captureScrollButtons : captureScrollButtons,	// 1st param: 'up' or 'down', 2nd: function to execute on scroll
 			captureMouseWheel : captureMouseWheel,			// 
-			render : render									// update the DOM;
+			render : render										// update the DOM;
 		};
 		
 	}();
@@ -80,7 +79,7 @@ $(function() {
 			originalTxt,						// Will hold all the original text in the main content div
 			lines = [],							// The original text split up into lines, based on \n
 			linesToShow,						// How many lines there are to show
-			top;								// Current line # being shown at top of main content area
+			top;									// Current line # being shown at top of main content area
 
 		var
 			init = function( txt ) {
@@ -88,30 +87,37 @@ $(function() {
 				originalTxt = txt;
 				lines = originalTxt.split('\n');
 				computeLinesToShow();
+				render();
 			},
 
 			computeLinesToShow = function ( ) {
 				// This is an approximation of how many lines will need to get shown
 				// TODO: The smaller the height of the browser, the closer this approximation is.
-				linesToShow = Math.floor( view.viewableContentHeight() / parseInt( view.getFontSize() ) );
-				view.render( lines, top, linesToShow );		// tell view to show appropriate # of lines
+				linesToShow = Math.floor( view.viewableContentHeight() / parseInt( view.getFontSize() ) - view.viewableContentHeight()/100 );
+				console.log( '--> ' + linesToShow );
 			},
 
 			handleScrollUp = function() {
 				if ( top > 0 ) {
 					top--;
-					view.render( lines, top, linesToShow );
+					render();
 				}
-			}
-
+			},
 
 			handleScrollDown = function() {
 				if ( top + linesToShow < lines.length ) {
 					top++;
+					render();
+				}
+			},
+
+			render = function() {
+				if ( lines.length <= linesToShow ) {
+					view.render( lines, top, lines.length );
+				} else {
 					view.render( lines, top, linesToShow );
 				}
-			}
-			;
+			};
 
 		return {
 			init : init,
